@@ -17,6 +17,9 @@
 }
 html,body{height:100%}
 [hidden]{display:none!important}
+/* 手機長按不要跳出選取、拷貝、存圖選單（長按蓄力、拖曳頭盔都需要） */
+.bar,.stage,.top,.tipbar,.bar button,.stage canvas,.stage img,.stage video{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#b-launch,#b-launch4,[data-blow]{touch-action:none}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;margin:0;overflow:hidden;
   padding-left:max(0px,env(safe-area-inset-left,0px));padding-right:max(0px,env(safe-area-inset-right,0px))}
 *{box-sizing:border-box}
@@ -106,6 +109,9 @@ button,label.btn{font:inherit;color:inherit}
 .shot img,.shot video{max-width:100%;max-height:calc(100% - 120px);border-radius:10px;border:1px solid var(--line);background:#000}
 .shot p{margin:0;color:var(--muted);font-size:13px;text-align:center}
 .shot .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.count{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:7;pointer-events:none;
+  font-family:var(--f-display);font-weight:700;font-size:min(34vw,180px);color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6)}
+.count small{position:absolute;bottom:18%;left:0;right:0;text-align:center;font-family:var(--f-body);font-size:16px;font-weight:500;text-shadow:0 1px 6px #000}
 .meter{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(320px,70%);z-index:4;pointer-events:none;text-align:center}
 .meter .lbl{font-size:13px;margin-bottom:4px;text-shadow:0 1px 3px #000}
 .meter .track{height:14px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden;position:relative}
@@ -175,13 +181,14 @@ button,label.btn{font:inherit;color:inherit}
     <div class="meter" id="meter" hidden><div class="lbl" id="meter-l">蓄力中…</div><div class="track"><div class="fill" id="meter-f"></div><div class="karman" id="karman" title="卡門線 100 km"></div></div></div>
     <div class="partcard" id="partcard" hidden role="status"><button type="button" id="part-x" aria-label="關閉">×</button><b id="part-t"></b><span id="part-d"></span></div>
     <div class="recbadge" id="recbadge" hidden>● REC 0:00</div>
+    <div class="count" id="count" hidden><span id="count-n">3</span><small id="count-s">擺好姿勢！</small></div>
   </section>
 
   <div class="tipbar">
     <p class="tip" id="tip1">從<b>有雕刻的正面</b>拍你的太空梭，讓它對齊綠色框線，再按快門。</p>
     <p class="tip" id="tip2" hidden>拖曳四個<b>綠點</b>到機頭、左右翼尖、機尾中央，框線貼合後按「完成」。</p>
     <p class="tip" id="tip3" hidden><span id="note3t"><b>按住發射鈕蓄力</b>、放開升空；點零件看解說。機身顏色 <span class="swatch" id="sw"></span> 取自你的彩繪</span><span class="advc" id="advc" hidden><label for="c-et">燃料箱</label><input type="color" id="c-et"><label for="c-srb">推進器</label><input type="color" id="c-srb"></span></p>
-    <p class="tip" id="tip4" hidden><span class="seg" role="group" aria-label="合照背景"><button type="button" data-bg="front" aria-pressed="true">自拍鏡頭</button><button type="button" data-bg="rear" aria-pressed="false">後鏡頭</button><label for="file4" data-bg="album" aria-pressed="false">相簿照片</label></span><span class="seg"><button type="button" id="b-helm" aria-pressed="false">太空頭盔</button></span><input class="sr" id="file4" type="file" accept="image/*"><span id="note4">拖曳移動太空梭，雙指縮放、轉動；按住發射鈕蓄力</span></p>
+    <p class="tip" id="tip4" hidden><span class="seg" role="group" aria-label="合照背景"><button type="button" data-bg="front" aria-pressed="true">自拍鏡頭</button><button type="button" data-bg="rear" aria-pressed="false">後鏡頭</button><label for="file4" data-bg="album" aria-pressed="false">相簿照片</label></span><span class="seg" role="group" aria-label="玩法"><button type="button" data-fm="fly" aria-pressed="true">繞著我飛</button><button type="button" data-fm="launch" aria-pressed="false">發射</button></span><span class="seg"><button type="button" id="b-helm" aria-pressed="false">太空頭盔</button></span><input class="sr" id="file4" type="file" accept="image/*"><span id="note4"></span></p>
   </div>
   <div class="bar" id="bar1">
     <label class="btn" for="file">上傳照片</label>
@@ -201,10 +208,11 @@ button,label.btn{font:inherit;color:inherit}
   </div>
   <div class="bar" id="bar4" hidden>
     <button class="btn" id="b-back4">返回</button>
-    <button class="btn rec" id="b-rec" aria-pressed="false"><span class="dot"></span><span id="rec-t">錄發射影片</span></button>
+    <button class="btn rec" id="b-rec" aria-pressed="false"><span class="dot"></span><span id="rec-t">錄影</span></button>
+    <button class="btn" id="b-timer" aria-label="自拍計時">計時 3 秒</button>
     <button class="shutter" id="shoot4" aria-label="拍合照"></button>
-    <button class="btn blow" data-blow aria-pressed="false">吹氣</button>
-    <button class="btn go" id="b-launch4">按住發射</button>
+    <button class="btn blow" data-blow aria-pressed="false" id="b-blow4" hidden>吹氣</button>
+    <button class="btn go" id="b-launch4" hidden>按住發射</button>
   </div>
   <div id="helpbox" hidden role="dialog" aria-label="開啟相機的方法">
     <h2 id="help-h">怎麼開啟相機？</h2>
@@ -559,6 +567,7 @@ function buildModel(faceCanvas, body, k, et, srb){
     G.srbFl = [];
   }
   $('advc').hidden = k!=='adv';
+  if(typeof flyVis==='function') flyVis();
   view.r = (k==='adv' ? 560 : 430) * (photo ? 1.6 : 1);
 }
 /* 互動：拖曳旋轉、雙指縮放 */
@@ -596,7 +605,11 @@ addEventListener('resize', ()=>{ resize3(); if(step===2 && handles) redrawAlign(
 
 /* ---------------- 合照模式：自拍／後鏡頭／相簿照片當背景，太空梭在畫面裡飛 ---------------- */
 let photo = false, bgMode = 'front', stream4 = null, saved3 = null;
-const NOTE4 = '拖曳移動太空梭，雙指縮放、轉動';
+let flyMode = true, timerSec = 3, pendingShot = false;
+const NOTE4F = '拿著你的作品入鏡！太空梭會繞著你飛；拖曳移動飛行範圍、雙指縮放。按快門後倒數拍照。';
+const NOTE4L = '拖曳移動太空梭，雙指縮放、轉動。有人幫忙就按住發射鈕蓄力；一個人玩就按快門，倒數後自動發射並拍下升空瞬間。';
+const NOTE4H = '把頭盔拖到臉上，雙指縮放、轉動頭盔；拖曳其他地方移動太空梭。';
+function updNote(){ $('note4').textContent = helm.on ? NOTE4H : (flyMode ? NOTE4F : NOTE4L); }
 function stopStream(s){ if(s) s.getTracks().forEach(t=>t.stop()); }
 function markBg(m){ document.querySelectorAll('#tip4 [data-bg]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.bg===m)); }
 async function setBg(m){
@@ -609,7 +622,7 @@ async function setBg(m){
     stream4 = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal: m==='front'?'user':'environment'}, width:{ideal:1920}, height:{ideal:1080}}, audio:false});
     v4.srcObject = stream4; await v4.play();
     v4.classList.toggle('mirror', m==='front'); v4.hidden=false; b4.hidden=true; $('bgimg').hidden=true;
-    bgMode = m; markBg(m); $('note4').textContent = NOTE4;
+    bgMode = m; markBg(m); updNote();
   }catch(e){
     $('note4').innerHTML = '相機打不開。<button type="button" class="linkbtn" id="help-open">看開啟方法</button>，或改按「相簿照片」選一張照片。';
     $('help-open').onclick = ()=>openHelp('相機');
@@ -630,14 +643,73 @@ function setPhoto(on){
     view.yaw = -0.5; view.pitch = 0.1; view.r *= 1.6;                 // 縮小一點、放在畫面右下，左邊留給作者
     pan.x = w>h ? w*0.24 : w*0.18; pan.y = h*0.12;
     setBg(bgMode==='album' && $('bg4').getAttribute('src') ? 'album' : 'front');
+    setFly(true); setTimer(3);
   } else {
-    if(rec) stopRec(true);
+    if(rec) stopRec(true); cancelCount(); pendingShot = false;
+    setFly(false, true);
     stopStream(stream4); stream4 = null; $('video4').hidden=true; $('bg4').hidden=true; $('bgimg').hidden=false;
     if(saved3) Object.assign(view, saved3); pan.x = pan.y = 0; camera.clearViewOffset();
   }
 }
 $('b-photo').onclick = ()=>{ resetLaunch(); setPhoto(true); };
 $('b-back4').onclick = ()=>{ resetLaunch(); setPhoto(false); };
+
+/* 玩法：繞著我飛（一個人自拍）／發射 */
+function flyVis(){ const show = !(photo && flyMode);
+  for(const g of [G.et, G.srbL, G.srbR]) if(g) g.visible = show;
+  pad.visible = show; }
+function setFly(on, leaving){
+  flyMode = on; resetLaunch(); pendingShot = false;
+  ship.position.set(0,0,0); ship.quaternion.identity(); flames.forEach(f=>f.visible=false); glow.intensity = 0;
+  document.querySelectorAll('[data-fm]').forEach(b=>b.setAttribute('aria-pressed', (b.dataset.fm==='fly')===on));
+  $('b-launch4').hidden = on; $('b-blow4').hidden = on; if(on) stopBlow();
+  $('rec-t').textContent = '錄影';
+  if(leaving) flyMode = true;            // 下次進合照模式仍預設繞飛
+  flyVis(); if(!leaving) updNote();
+}
+document.querySelectorAll('[data-fm]').forEach(b=> b.onclick = ()=>{ if(rec) stopRec(true); cancelCount(); setFly(b.dataset.fm==='fly'); });
+
+/* 自拍計時 */
+const TIMERS = [0,3,5,10];
+function setTimer(n){ timerSec = n; $('b-timer').textContent = n ? `計時 ${n} 秒` : '計時 關'; }
+$('b-timer').onclick = ()=> setTimer(TIMERS[(TIMERS.indexOf(timerSec)+1) % TIMERS.length]);
+let actx = null;
+function beep(f, d){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==='suspended') actx.resume();
+  const o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = f; o.connect(g); g.connect(actx.destination);
+  const t = actx.currentTime; g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.25,t+.01); g.gain.exponentialRampToValueAtTime(.0001,t+d); o.start(t); o.stop(t+d+.02); }catch(e){} }
+let cd = null;
+function countdown(n, label, done){
+  cancelCount(); if(!n){ done(); return; }
+  cd = {n, done}; $('count').hidden = false; $('count-n').textContent = n; $('count-s').textContent = label; beep(880,.12);
+  cd.iv = setInterval(()=>{ cd.n--; if(cd.n>0){ $('count-n').textContent = cd.n; beep(880,.12); }
+    else { const f = cd.done; cancelCount(); beep(1320,.25); f(); } }, 1000);
+}
+function cancelCount(){ if(cd){ clearInterval(cd.iv); cd = null; } $('count').hidden = true; }
+function doShot(){ composite().toBlob(b=>{ if(b) showShot(b, `太空梭合照_${stamp()}.jpg`, false); }, 'image/jpeg', .92); }
+
+/* 繞飛：在鏡頭前沿著橢圓繞圈（下方較近、頭頂較遠），機頭朝前進方向、彩繪面盡量朝鏡頭 */
+const fly = {a:-Math.PI/2, puff:0};
+const _v = new THREE.Vector3(), _y = new THREE.Vector3(), _z = new THREE.Vector3(), _x = new THREE.Vector3(), _m = new THREE.Matrix4();
+function flyPoint(a, out){
+  const nx = 0.70*Math.cos(a), ny = 0.10 + 0.55*Math.sin(a), depth = view.r*(0.95 + 0.30*Math.sin(a));
+  out.set(nx, ny, 0.5).unproject(camera).sub(camera.position).normalize().multiplyScalar(depth).add(camera.position);
+  return out;
+}
+function flyTick(dt){
+  camera.updateMatrixWorld();
+  fly.a += dt*(reduceMotion ? 0.25 : 0.55);
+  const p0 = flyPoint(fly.a, new THREE.Vector3()), p1 = flyPoint(fly.a+0.03, _v);
+  _y.subVectors(p1, p0).normalize();
+  _z.subVectors(camera.position, p0).normalize(); _z.addScaledVector(_y, -_z.dot(_y)).normalize();
+  _x.crossVectors(_y, _z);
+  ship.position.copy(p0); ship.quaternion.setFromRotationMatrix(_m.makeBasis(_x, _y, _z));
+  ship.rotateY(Math.sin(fly.a*2)*0.35);                         // 小幅翻滾，看起來更像在飛
+  flames.forEach(f=>{ f.visible = true; f.scale.set(1, .8*(1+(Math.random()-.5)*.3), 1); });
+  glow.intensity = 1.0; glow.position.copy(p0);
+  fly.puff += dt; while(fly.puff > 0.035){ fly.puff -= 0.035;
+    const back = p0.clone().addScaledVector(_y, -6 - Math.random()*6);
+    puff(back, _y.clone().multiplyScalar(-25).add(new THREE.Vector3((Math.random()-.5)*10,(Math.random()-.5)*10,(Math.random()-.5)*10)), 5, 26, 1.5, .5, .35); }
+}
 
 /* 太空頭盔貼紙：畫在背景層（太空梭飛過時會在頭盔前面） */
 const helmImg = (function(){ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d');
@@ -659,8 +731,8 @@ function placeHelm(){ const c=$('helm'); c.style.width=c.style.height=helm.size+
 $('b-helm').onclick = ()=>{
   helm.on = !helm.on; $('b-helm').setAttribute('aria-pressed', helm.on); $('helm').hidden = !helm.on;
   if(helm.on){ const w=$('s3').clientWidth, h=$('s3').clientHeight; helm.size=Math.min(w,h)*0.46; helm.x=w*(w>h?0.32:0.3); helm.y=h*0.36; helm.rot=0; placeHelm();
-    $('note4').textContent='把頭盔拖到臉上，雙指縮放、轉動頭盔；拖曳其他地方移動太空梭。'; }
-  else $('note4').textContent = NOTE4;
+    updNote(); }
+  else updNote();
 };
 
 /* 發射力道：長按蓄力 或 吹氣；高度 20～420 km，卡門線 100 km 以上才算進入太空 */
@@ -674,6 +746,8 @@ function startLaunch(p){
   $('tele').hidden=false; $('b-launch').textContent='停止'; $('b-launch4').textContent='停止';
 }
 function launchBtn(btn){
+  btn.addEventListener('contextmenu', e=>e.preventDefault());
+  btn.addEventListener('selectstart', e=>e.preventDefault());
   btn.addEventListener('pointerdown', e=>{ e.preventDefault(); if(L.on){ resetLaunch(); return; } if(blow) return;
     chg = {src:'hold', t0:performance.now(), p:P_MIN}; $('partcard').hidden = true; btn.setPointerCapture(e.pointerId); });
   const fire = ()=>{ if(chg && chg.src==='hold'){ const p = chg.p; chg=null; $('meter').hidden=true; startLaunch(p); } };
@@ -751,6 +825,7 @@ function tapAt(cx, cy){
   if(!L.on) showPart(k);
 }
 launchBtn($('b-launch')); launchBtn($('b-launch4'));
+$('s3').addEventListener('contextmenu', e=>e.preventDefault());   // 畫面長按也不跳選單
 
 /* 合成：背景（鏡頭畫面或照片，cover 裁切）＋ 3D 畫面 ＋ 倒數字幕 ＋ 浮水印 */
 const comp = document.createElement('canvas'), cg = comp.getContext('2d');
@@ -802,7 +877,11 @@ function showShot(blob, name, isVideo){
   else { $('shot-img').src = shotUrl; $('shot-vid').removeAttribute('src'); $('shot-note').textContent='手機上也可以長按圖片直接存到相簿。'; }
   $('shot').hidden = false; $('shot-save').focus();
 }
-$('shoot4').onclick = ()=>{ composite().toBlob(b=>{ if(b) showShot(b, `太空梭合照_${stamp()}.jpg`, false); }, 'image/jpeg', .92); };
+$('shoot4').onclick = ()=>{
+  if(cd){ cancelCount(); return; }                                    // 再按一次取消倒數
+  const solo = !flyMode && !L.on && timerSec>0;                       // 一個人玩發射：倒數後自動發射，拍升空瞬間
+  countdown(timerSec, solo ? '倒數結束自動發射' : '擺好姿勢！', ()=>{ if(solo){ startLaunch(0.75); pendingShot = true; } else doShot(); });
+};
 $('shot-close').onclick = ()=>{ $('shot').hidden = true; $('shot-vid').pause(); };
 $('shot-save').onclick = async ()=>{
   if(!shotBlob) return;
@@ -827,16 +906,17 @@ function startRec(){
   rec = {mr, chunks, t0:performance.now(), launched:false, cancel:false};
   mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
   mr.onstop = ()=>{ const r = rec; rec = null; st.getTracks().forEach(t=>t.stop());
-    $('b-rec').setAttribute('aria-pressed','false'); $('rec-t').textContent='錄發射影片'; $('recbadge').hidden=true; if(photo) $('note4').textContent = helm.on ? '把頭盔拖到臉上，雙指縮放、轉動頭盔；拖曳其他地方移動太空梭。' : NOTE4;
+    $('b-rec').setAttribute('aria-pressed','false'); $('rec-t').textContent='錄影'; $('recbadge').hidden=true; if(photo) $('note4').textContent = (updNote(), $('note4').textContent);
     if(r.cancel || !chunks.length) return;
     const mt = mr.mimeType || type || 'video/webm', ext = mt.includes('mp4') ? 'mp4' : 'webm';
     showShot(new Blob(chunks, {type: mt.split(';')[0]}), `太空梭發射_${stamp()}.${ext}`, true); };
   mr.start(250);
-  $('b-rec').setAttribute('aria-pressed','true'); $('rec-t').textContent='停止錄影'; $('recbadge').hidden=false;
-  $('note4').textContent = '錄影中：按住發射鈕蓄力（或吹氣），6 秒內沒發射會自動升空。';
+  $('b-rec').setAttribute('aria-pressed','true'); $('rec-t').textContent='停止'; $('recbadge').hidden=false;
+  if(flyMode) $('note4').textContent = '錄影中（10 秒）：拿著作品，太空梭會繞著你飛。';
+  else { $('note4').textContent = '錄影中：太空梭即將自動發射，降落後自動停止。'; setTimeout(()=>{ if(rec && !L.on) startLaunch(0.75); }, 800); }
 }
 function stopRec(cancel){ if(!rec) return; rec.cancel = !!cancel; if(rec.mr.state!=='inactive') rec.mr.stop(); }
-$('b-rec').onclick = ()=>{ if(rec) stopRec(false); else startRec(); };
+$('b-rec').onclick = ()=>{ if(rec){ stopRec(false); return; } if(cd){ cancelCount(); return; } countdown(timerSec, '倒數後開始錄影', startRec); };
 $('c-et').oninput = $('c-srb').oninput = ()=>{ if(lastScan && kind==='adv') rebuild(); };
 $('b-rescan').onclick = ()=>{ resetLaunch(); stopBlow(); $('result').hidden=true; $('partcard').hidden=true; go(1); if(!stream && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')) startCamera(); };
 
@@ -921,11 +1001,12 @@ function loop(){
   camera.position.set(target.x + view.r*Math.sin(view.yaw)*cp, target.y + view.r*Math.sin(view.pitch), target.z + view.r*Math.cos(view.yaw)*cp);
   camera.lookAt(target);
   if(photo){ const w=$('s3').clientWidth, h=$('s3').clientHeight; if(w&&h) camera.setViewOffset(w, h, -pan.x, -pan.y, w, h); }
+  if(photo && flyMode) flyTick(dt);
+  if(pendingShot){ if(!L.on) pendingShot = false; else if(L.s >= 4.4){ pendingShot = false; doShot(); } }
   if(rec){ composite(1280);
     const s = (performance.now()-rec.t0)/1000; $('recbadge').textContent = `● REC ${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
     if(L.on) rec.launched = true;
-    else if(!rec.launched && s>6 && !chg && !(blow && blow.charge>0.03)) startLaunch(0.75);   // 6 秒內沒發射就自動發射
-    if((rec.launched && !L.on) || s>30) stopRec(false); }
+    if(flyMode ? s>=10 : ((rec.launched && !L.on) || s>30)) stopRec(false); }
   else renderer.render(scene, camera);
 }
 loop();
