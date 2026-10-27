@@ -96,6 +96,7 @@ button,label.btn{font:inherit;color:inherit}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;vertical-align:middle;margin:0 6px 4px 0}
 .seg button,.seg label{border:0;background:transparent;border-radius:999px;padding:4px 11px;cursor:pointer;font-size:13px;white-space:nowrap;color:var(--ink)}
 .seg [aria-pressed="true"]{background:#fff;color:#0B1020;font-weight:700}
+.btn.blow[aria-pressed="true"]{background:#2F86D0;border-color:#2F86D0;color:#fff;font-weight:700}
 .btn.rec[aria-pressed="true"]{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:700}
 .btn.rec .dot{width:10px;height:10px;border-radius:50%;background:#E5484D;display:inline-block}
 .btn.rec[aria-pressed="true"] .dot{background:#fff}
@@ -105,13 +106,34 @@ button,label.btn{font:inherit;color:inherit}
 .shot img,.shot video{max-width:100%;max-height:calc(100% - 120px);border-radius:10px;border:1px solid var(--line);background:#000}
 .shot p{margin:0;color:var(--muted);font-size:13px;text-align:center}
 .shot .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-@media (max-width:600px){ #note4{display:block} .seg{margin-right:0} }
+.meter{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);width:min(320px,70%);z-index:4;pointer-events:none;text-align:center}
+.meter .lbl{font-size:13px;margin-bottom:4px;text-shadow:0 1px 3px #000}
+.meter .track{height:14px;border-radius:999px;background:rgba(0,0,0,.55);border:1px solid var(--line);overflow:hidden;position:relative}
+.meter .fill{height:100%;width:0;background:linear-gradient(90deg,#7CF0C8,#FFD25A 60%,#FF6A3D)}
+.meter .karman{position:absolute;top:-2px;bottom:-2px;width:2px;background:#fff;opacity:.8}
+.tele .alt{font-family:var(--f-mono);font-size:14px;color:var(--guide)}
+.result{position:absolute;left:12px;top:12px;z-index:3;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;font-size:13px;line-height:1.4;max-width:46%;pointer-events:none}
+.result b{display:block;font-size:15px;color:var(--accent)}
+.partcard{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(420px,calc(100% - 24px));z-index:6;background:var(--panel);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:12px;padding:10px 40px 10px 14px;font-size:14px}
+.partcard b{color:var(--guide);display:block;margin-bottom:2px}
+.partcard button{position:absolute;right:6px;top:6px;border:0;background:transparent;color:var(--muted);font-size:20px;cursor:pointer;width:30px;height:30px}
+#helm{position:absolute;pointer-events:none;width:auto;height:auto;inset:auto}
+.embedbar{background:#3A2A10;border-bottom:1px solid #7A5A20;color:#FFE6B8;font-size:13.5px;padding:8px 16px;display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;text-align:center}
+.embedbar a{color:#1A0E05;background:var(--accent);border-radius:999px;padding:5px 14px;font-weight:700;text-decoration:none;white-space:nowrap}
+.help{margin:0;padding-left:1.4em;font-size:14px;color:var(--ink);max-width:62ch}
+.help li{margin:4px 0}
+.help b{color:var(--guide)}
+#helpbox{position:absolute;inset:0;z-index:21;background:rgba(5,8,15,.95);overflow:auto;padding:20px max(16px,env(safe-area-inset-left,0px)) 20px max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+#helpbox h2{margin:0;font-size:18px}
+.linkbtn{background:none;border:0;color:var(--guide);text-decoration:underline;cursor:pointer;font:inherit;padding:0}
+@media (max-width:600px){ #note4{display:block} .seg{margin-right:0} .result{font-size:12px;max-width:52%} }
 </style>
 </head>
 <body>
 
 
 <div class="app">
+  <div class="embedbar" id="embedbar" hidden><span id="embed-msg">這個頁面被放在別的網站裡，相機可能打不開。</span><a id="embed-open" href="#" target="_blank" rel="noopener">用完整畫面開啟</a></div>
   <div class="top">
     <div class="brand"><small>學思創客 XUESI MAKER · AR</small><b>太空梭 AR 掃描</b></div>
     <div class="kind" role="group" aria-label="作品版本">
@@ -130,6 +152,7 @@ button,label.btn{font:inherit;color:inherit}
     <div class="samples" id="nocam" hidden>
       <h2>這台裝置不能開相機</h2>
       <p id="nocam-why">可以改用「上傳照片」，或先用下面的範例照片試試看：每一張都是不同的彩繪配色。</p>
+      <ol class="help" id="camhelp1"></ol>
       <div class="sgrid" id="sgrid1"></div>
     </div>
   </section>
@@ -145,16 +168,20 @@ button,label.btn{font:inherit;color:inherit}
     <img id="bgimg" alt="">
     <video id="video4" playsinline muted autoplay hidden></video>
     <img id="bg4" alt="" hidden>
+    <canvas id="helm" hidden></canvas>
     <canvas id="gl"></canvas>
-    <div class="tele" id="tele" hidden><div class="clock" id="clock">T−10</div><div class="ev" id="ev"></div></div>
+    <div class="tele" id="tele" hidden><div class="clock" id="clock">T−10</div><div class="ev" id="ev"></div><div class="alt" id="alt"></div></div>
+    <div class="result" id="result" hidden></div>
+    <div class="meter" id="meter" hidden><div class="lbl" id="meter-l">蓄力中…</div><div class="track"><div class="fill" id="meter-f"></div><div class="karman" id="karman" title="卡門線 100 km"></div></div></div>
+    <div class="partcard" id="partcard" hidden role="status"><button type="button" id="part-x" aria-label="關閉">×</button><b id="part-t"></b><span id="part-d"></span></div>
     <div class="recbadge" id="recbadge" hidden>● REC 0:00</div>
   </section>
 
   <div class="tipbar">
     <p class="tip" id="tip1">從<b>有雕刻的正面</b>拍你的太空梭，讓它對齊綠色框線，再按快門。</p>
     <p class="tip" id="tip2" hidden>拖曳四個<b>綠點</b>到機頭、左右翼尖、機尾中央，框線貼合後按「完成」。</p>
-    <p class="tip" id="tip3" hidden><span id="note3t">拖曳旋轉、雙指縮放。機身顏色 <span class="swatch" id="sw"></span> 取自你的彩繪</span><span class="advc" id="advc" hidden><label for="c-et">燃料箱</label><input type="color" id="c-et"><label for="c-srb">推進器</label><input type="color" id="c-srb"></span></p>
-    <p class="tip" id="tip4" hidden><span class="seg" role="group" aria-label="合照背景"><button type="button" data-bg="front" aria-pressed="true">自拍鏡頭</button><button type="button" data-bg="rear" aria-pressed="false">後鏡頭</button><label for="file4" data-bg="album" aria-pressed="false">相簿照片</label></span><input class="sr" id="file4" type="file" accept="image/*"><span id="note4">拖曳移動太空梭，雙指縮放、轉動</span></p>
+    <p class="tip" id="tip3" hidden><span id="note3t"><b>按住發射鈕蓄力</b>、放開升空；點零件看解說。機身顏色 <span class="swatch" id="sw"></span> 取自你的彩繪</span><span class="advc" id="advc" hidden><label for="c-et">燃料箱</label><input type="color" id="c-et"><label for="c-srb">推進器</label><input type="color" id="c-srb"></span></p>
+    <p class="tip" id="tip4" hidden><span class="seg" role="group" aria-label="合照背景"><button type="button" data-bg="front" aria-pressed="true">自拍鏡頭</button><button type="button" data-bg="rear" aria-pressed="false">後鏡頭</button><label for="file4" data-bg="album" aria-pressed="false">相簿照片</label></span><span class="seg"><button type="button" id="b-helm" aria-pressed="false">太空頭盔</button></span><input class="sr" id="file4" type="file" accept="image/*"><span id="note4">拖曳移動太空梭，雙指縮放、轉動；按住發射鈕蓄力</span></p>
   </div>
   <div class="bar" id="bar1">
     <label class="btn" for="file">上傳照片</label>
@@ -169,13 +196,20 @@ button,label.btn{font:inherit;color:inherit}
   <div class="bar" id="bar3" hidden>
     <button class="btn" id="b-rescan">重新掃描</button>
     <button class="btn" id="b-photo">與作品合照</button>
-    <button class="btn go" id="b-launch">發射</button>
+    <button class="btn blow" data-blow aria-pressed="false">吹氣發射</button>
+    <button class="btn go" id="b-launch">按住發射</button>
   </div>
   <div class="bar" id="bar4" hidden>
     <button class="btn" id="b-back4">返回</button>
     <button class="btn rec" id="b-rec" aria-pressed="false"><span class="dot"></span><span id="rec-t">錄發射影片</span></button>
     <button class="shutter" id="shoot4" aria-label="拍合照"></button>
-    <button class="btn go" id="b-launch4">發射</button>
+    <button class="btn blow" data-blow aria-pressed="false">吹氣</button>
+    <button class="btn go" id="b-launch4">按住發射</button>
+  </div>
+  <div id="helpbox" hidden role="dialog" aria-label="開啟相機的方法">
+    <h2 id="help-h">怎麼開啟相機？</h2>
+    <ol class="help" id="camhelp2"></ol>
+    <div><button class="btn go" id="help-x">知道了</button></div>
   </div>
   <div class="shot" id="shot" hidden role="dialog" aria-label="合照預覽">
     <img id="shot-img" alt="合照預覽" hidden>
@@ -196,6 +230,49 @@ const srcC = document.createElement('canvas');   // 原始照片（全解析度�
 let crop = null;                                  // 對齊時放大顯示的範圍
 const $ = id => document.getElementById(id);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- 裝置判斷與「打不開相機」的說明 ---------------- */
+const UA = navigator.userAgent;
+const isIOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+const isAndroid = /Android/i.test(UA);
+const isLine = /\bLine\//i.test(UA);
+const inApp = isLine || /FBAN|FBAV|FB_IAB|Instagram|MicroMessenger/i.test(UA);
+let embedded = false; try{ embedded = window.self !== window.top; }catch(e){ embedded = true; }
+function extURL(){ const u = new URL(location.href); if(isLine) u.searchParams.set('openExternalBrowser','1'); return u.href; }
+function helpSteps(dev){   // dev = '相機' 或 '麥克風'
+  const L = [];
+  if(embedded) L.push(`這個頁面被放在別的網站裡（例如 Google 協作平台），瀏覽器不讓它開${dev}。請按上方<b>「用完整畫面開啟」</b>。`);
+  if(inApp){
+    L.push(`你正在 ${isLine?'LINE':'App'} 的內建瀏覽器裡，常常不能開${dev}。點右上角<b>「⋮」或分享圖示</b>，選<b>「以預設瀏覽器開啟」</b>（Safari／Chrome）。`);
+    L.push('下次掃 QR code 時，用手機內建的<b>相機 App</b> 掃，不要用 LINE 的掃描器。');
+  } else if(isIOS){
+    L.push(`點網址列左邊的 <b>ᴀA</b>（或頁面設定圖示）→「網站設定」→ <b>${dev}</b> 改成「允許」，再重新整理。`);
+    L.push(`還是不行：到手機「設定 → App → Safari → ${dev}」改成「詢問」或「允許」（舊版 iOS 是「設定 → Safari → ${dev}」）。`);
+    L.push(`用 iPhone 上的 Chrome：到「設定 → Chrome」把<b>${dev}</b>打開。`);
+    L.push(`學校管理的平板，可能在「螢幕使用時間 → 內容與隱私權限制」關掉了${dev}，請管理者開啟。`);
+  } else if(isAndroid){
+    L.push(`點網址列左邊的圖示（鎖頭或調整圖示）→「權限」→ <b>${dev}</b> 改成「允許」，再重新整理。`);
+    L.push(`還是不行：Chrome 右上角「⋮ → 設定 → 網站設定 → ${dev}」，確認沒有封鎖這個網站。`);
+    L.push(`再不行：手機「設定 → 應用程式 → Chrome → 權限 → ${dev}」改成允許。`);
+  } else {
+    L.push(`點網址列左邊的鎖頭圖示，把<b>${dev}</b>改成允許，再重新整理。`);
+    L.push(`確認電腦有${dev}，而且沒有被視訊會議等程式占用。`);
+  }
+  L.push(`${dev}被其他 App 占用時（例如 LINE 視訊、相機 App），先關掉再試。`);
+  return L.map(x=>`<li>${x}</li>`).join('');
+}
+function openHelp(dev){ $('help-h').textContent = `怎麼開啟${dev}？`; $('camhelp2').innerHTML = helpSteps(dev); $('helpbox').hidden = false; $('help-x').focus(); }
+$('help-x').onclick = ()=>{ $('helpbox').hidden = true; };
+(function(){
+  const bar = $('embedbar'), a = $('embed-open');
+  if(embedded){ a.href = location.href; bar.hidden = false; }
+  else if(inApp){
+    $('embed-msg').textContent = `你正在 ${isLine?'LINE':'App'} 的內建瀏覽器裡，相機可能打不開。`;
+    if(isLine){ a.href = extURL(); a.removeAttribute('target'); a.textContent = '用瀏覽器開啟'; }
+    else { a.hidden = true; $('embed-msg').textContent += '請點右上角「⋯」選「用瀏覽器開啟」。'; }
+    bar.hidden = false;
+  }
+})();
 const SVGNS = 'http://www.w3.org/2000/svg';
 
 /* ---------------- 共用：木紋與雕刻貼圖 ---------------- */
@@ -288,13 +365,13 @@ async function startCamera(){
     if(v.videoWidth) fit(); else v.addEventListener('loadedmetadata', fit, {once:true});
   }catch(e){ showNoCam('相機沒有開啟（可能被拒絕權限或被其他程式使用）。'); }
 }
-function showNoCam(msg){ $('nocam-why').textContent = msg + ' 可以改用「上傳照片」，或先用下面的範例照片試試看：每一張都是不同的彩繪配色。'; $('nocam').hidden = false; $('shoot').hidden = true; }
+function showNoCam(msg){ $('nocam-why').textContent = msg + ' 照下面的方法開啟相機；也可以改用「上傳照片」，或先用範例照片試試看：每一張都是不同的彩繪配色。'; $('camhelp1').innerHTML = helpSteps('相機'); $('nocam').hidden = false; $('shoot').hidden = true; }
 function fillSamples(el){
   el.innerHTML = SAMPLES.map((s,i)=>`<button type="button" data-i="${i}"><img src="${s.src}" alt="${s.name}" loading="lazy"><span>${s.name}</span><span class="tag">${s.kind==='adv'?'進階版':'簡易版'}</span></button>`).join('');
   el.onclick = e=>{ const b=e.target.closest('button[data-i]'); if(!b) return; const s=SAMPLES[+b.dataset.i]; setKind(s.kind||'simple'); loadImage(s.src, s.handles); };
 }
 fillSamples($('sgrid1'));
-$('b-samples').onclick = ()=>{ $('nocam').hidden = false; if(stream) $('nocam').querySelector('h2').textContent='範例照片'; };
+$('b-samples').onclick = ()=>{ $('nocam').hidden = false; if(stream){ $('nocam').querySelector('h2').textContent='範例照片'; $('nocam-why').textContent='每一張都是不同的彩繪配色，點一張試試看。'; $('camhelp1').innerHTML=''; } };
 $('shoot').onclick = ()=>{
   const v = $('video'); if(!v.videoWidth) return;
   const c = srcC; c.width = v.videoWidth; c.height = v.videoHeight; c.getContext('2d').drawImage(v,0,0);
@@ -487,16 +564,30 @@ function buildModel(faceCanvas, body, k, et, srb){
 /* 互動：拖曳旋轉、雙指縮放 */
 const view = {yaw:-0.35, pitch:0.18, r:430};
 const pan = {x:0, y:0};                                     // 合照模式：太空梭在畫面上的位移（CSS px）
-(function(){ const s3 = $('s3'), pts = new Map(); let pinch = 0, twist = null;
-  s3.addEventListener('pointerdown', e=>{ s3.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); });
+const helm = {on:false, x:0, y:0, size:200, rot:0};             // 太空頭盔貼紙（CSS px，相對於畫面）
+(function(){ const s3 = $('s3'), pts = new Map(); let pinch = 0, twist = null, gmode = 'scene', tap = null;
+  const local = e=>{ const r = s3.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; };
+  s3.addEventListener('pointerdown', e=>{ s3.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pts.size===1){ const [lx,ly] = local(e);
+      gmode = (photo && helm.on && Math.hypot(lx-helm.x, ly-helm.y) < helm.size*0.5) ? 'helm' : 'scene';
+      tap = {id:e.pointerId, x:e.clientX, y:e.clientY, t:performance.now(), moved:0}; }
+    else tap = null; });
   s3.addEventListener('pointermove', e=>{ if(!pts.has(e.pointerId)) return; const [px,py]=pts.get(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]);
+    const dx = e.clientX-px, dy = e.clientY-py;
+    if(tap && tap.id===e.pointerId) tap.moved += Math.abs(dx)+Math.abs(dy);
     if(pts.size===1){
-      if(photo){ pan.x += e.clientX-px; pan.y += e.clientY-py; }
-      else { view.yaw -= (e.clientX-px)*.008; view.pitch = Math.max(-.2, Math.min(1.2, view.pitch + (e.clientY-py)*.006)); } }
+      if(gmode==='helm'){ helm.x += dx; helm.y += dy; placeHelm(); }
+      else if(photo){ pan.x += dx; pan.y += dy; }
+      else { view.yaw -= dx*.008; view.pitch = Math.max(-.2, Math.min(1.2, view.pitch + dy*.006)); } }
     else if(pts.size===2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
-      if(pinch) view.r = Math.max(180, Math.min(2400, view.r*pinch/d)); pinch=d;
-      if(photo && twist!==null){ let da=ang-twist; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; view.yaw -= da; } twist=ang; } });
-  const end = e=>{ pts.delete(e.pointerId); if(pts.size<2){ pinch=0; twist=null; } };
+      let da = 0; if(twist!==null){ da=ang-twist; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; }
+      if(gmode==='helm'){ if(pinch) helm.size = Math.max(60, Math.min(900, helm.size*d/pinch)); helm.rot += da; placeHelm(); }
+      else { if(pinch) view.r = Math.max(180, Math.min(2400, view.r*pinch/d)); if(photo) view.yaw -= da; }
+      pinch=d; twist=ang; } });
+  const end = e=>{
+    if(tap && tap.id===e.pointerId && e.type==='pointerup' && tap.moved<10 && performance.now()-tap.t<400 && gmode!=='helm') tapAt(e.clientX, e.clientY);
+    if(tap && tap.id===e.pointerId) tap = null;
+    pts.delete(e.pointerId); if(pts.size<2){ pinch=0; twist=null; } };
   s3.addEventListener('pointerup', end); s3.addEventListener('pointercancel', end);
   s3.addEventListener('wheel', e=>{ e.preventDefault(); view.r = Math.max(180, Math.min(2400, view.r*(1+Math.sign(e.deltaY)*.08))); }, {passive:false});
 })();
@@ -520,7 +611,8 @@ async function setBg(m){
     v4.classList.toggle('mirror', m==='front'); v4.hidden=false; b4.hidden=true; $('bgimg').hidden=true;
     bgMode = m; markBg(m); $('note4').textContent = NOTE4;
   }catch(e){
-    $('note4').textContent = '這台裝置不能開相機，可以改按「相簿照片」選一張自己的照片。';
+    $('note4').innerHTML = '相機打不開。<button type="button" class="linkbtn" id="help-open">看開啟方法</button>，或改按「相簿照片」選一張照片。';
+    $('help-open').onclick = ()=>openHelp('相機');
     v4.hidden = true; if(b4.getAttribute('src')){ b4.hidden=false; bgMode='album'; markBg('album'); } else { $('bgimg').hidden=false; }
   }
 }
@@ -546,7 +638,119 @@ function setPhoto(on){
 }
 $('b-photo').onclick = ()=>{ resetLaunch(); setPhoto(true); };
 $('b-back4').onclick = ()=>{ resetLaunch(); setPhoto(false); };
-$('b-launch4').onclick = ()=> $('b-launch').onclick();
+
+/* 太空頭盔貼紙：畫在背景層（太空梭飛過時會在頭盔前面） */
+const helmImg = (function(){ const c=document.createElement('canvas'); c.width=c.height=512; const g=c.getContext('2d');
+  const cx=256, cy=256, R=236;
+  const sh = g.createRadialGradient(190,160,40, cx,cy,R); sh.addColorStop(0,'#FFFFFF'); sh.addColorStop(.7,'#E3E8EF'); sh.addColorStop(1,'#AEB8C6');
+  g.fillStyle = sh; g.beginPath(); g.arc(cx,cy,R,0,6.2832); g.ellipse(cx,cy-12,158,150,0,0,6.2832,true); g.fill('evenodd');
+  g.save(); g.beginPath(); g.arc(cx,cy,R,0,6.2832); g.clip(); g.fillStyle='#7E889A'; g.fillRect(0,438,512,80); g.fillStyle='#FF8A3D'; g.fillRect(0,430,512,10); g.restore();
+  g.lineWidth=16; g.strokeStyle='#C8D0DC'; g.beginPath(); g.ellipse(cx,cy-12,166,158,0,0,6.2832); g.stroke();
+  g.lineWidth=4; g.strokeStyle='#D9A93A'; g.beginPath(); g.ellipse(cx,cy-12,157,149,0,0,6.2832); g.stroke();
+  g.fillStyle='rgba(120,170,255,.10)'; g.beginPath(); g.ellipse(cx,cy-12,155,147,0,0,6.2832); g.fill();
+  g.strokeStyle='rgba(255,255,255,.6)'; g.lineWidth=12; g.lineCap='round'; g.beginPath(); g.ellipse(cx,cy-12,128,120,0,3.55,4.35); g.stroke();
+  g.lineWidth=7; g.beginPath(); g.ellipse(cx,cy-12,128,120,0,4.55,4.75); g.stroke();
+  for(const sx of [-1,1]){ g.fillStyle='#5B6578'; g.fillRect(cx+sx*214-12, cy-40, 24, 70); g.fillStyle='#7CF0C8'; g.fillRect(cx+sx*214-6, cy-30, 12, 14); }
+  g.fillStyle='#2B3A55'; g.font='700 30px "Noto Sans TC", sans-serif'; g.textAlign='center'; g.fillText('XUESI MAKER', cx, 64);
+  g.lineWidth=4; g.strokeStyle='rgba(0,0,0,.25)'; g.beginPath(); g.arc(cx,cy,R,0,6.2832); g.stroke();
+  return c; })();
+(function(){ const c=$('helm'); c.width=c.height=512; c.getContext('2d').drawImage(helmImg,0,0); })();
+function placeHelm(){ const c=$('helm'); c.style.width=c.style.height=helm.size+'px'; c.style.left=(helm.x-helm.size/2)+'px'; c.style.top=(helm.y-helm.size/2)+'px'; c.style.transform=`rotate(${helm.rot}rad)`; }
+$('b-helm').onclick = ()=>{
+  helm.on = !helm.on; $('b-helm').setAttribute('aria-pressed', helm.on); $('helm').hidden = !helm.on;
+  if(helm.on){ const w=$('s3').clientWidth, h=$('s3').clientHeight; helm.size=Math.min(w,h)*0.46; helm.x=w*(w>h?0.32:0.3); helm.y=h*0.36; helm.rot=0; placeHelm();
+    $('note4').textContent='把頭盔拖到臉上，雙指縮放、轉動頭盔；拖曳其他地方移動太空梭。'; }
+  else $('note4').textContent = NOTE4;
+};
+
+/* 發射力道：長按蓄力 或 吹氣；高度 20～420 km，卡門線 100 km 以上才算進入太空 */
+const P_MIN = 0.1, apoOf = p => Math.round(20 + 400*p);
+$('karman').style.left = ((100-20)/400*100)+'%';
+let chg = null;                                    // 蓄力中：{src:'hold'|'blow', p}
+function showMeter(p, lbl){ $('meter').hidden=false; $('meter-f').style.width=(p*100)+'%'; $('meter-l').textContent = lbl + `　預估 ${apoOf(p)} km`; }
+function startLaunch(p){
+  resetLaunch(); chg = null; $('meter').hidden = true; $('result').hidden = true; $('partcard').hidden = true;
+  L.on = true; L.p = Math.max(P_MIN, Math.min(1, p)); L.apo = apoOf(L.p);
+  $('tele').hidden=false; $('b-launch').textContent='停止'; $('b-launch4').textContent='停止';
+}
+function launchBtn(btn){
+  btn.addEventListener('pointerdown', e=>{ e.preventDefault(); if(L.on){ resetLaunch(); return; } if(blow) return;
+    chg = {src:'hold', t0:performance.now(), p:P_MIN}; $('partcard').hidden = true; btn.setPointerCapture(e.pointerId); });
+  const fire = ()=>{ if(chg && chg.src==='hold'){ const p = chg.p; chg=null; $('meter').hidden=true; startLaunch(p); } };
+  btn.addEventListener('pointerup', fire); btn.addEventListener('pointercancel', fire);
+  btn.onclick = e=>{ if(e && e.detail>0) return; if(L.on) resetLaunch(); else startLaunch(0.75); };   // 鍵盤操作：直接中等力道
+}
+function chargeTick(dt){
+  if(chg && chg.src==='hold'){ chg.p = Math.min(1, P_MIN + (performance.now()-chg.t0)/1000/1.8); showMeter(chg.p, chg.p>=1 ? '最大推力！放開升空' : '蓄力中…放開升空'); }
+  if(blow) blowTick(dt);
+}
+
+/* 吹氣發射：麥克風音量（RMS）超過門檻就累積推力，停止吹氣就升空 */
+let blow = null;
+async function startBlow(){
+  try{
+    const st = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false, noiseSuppression:false, autoGainControl:false}, video:false});
+    const ctx = new (window.AudioContext||window.webkitAudioContext)(); const src = ctx.createMediaStreamSource(st);
+    const an = ctx.createAnalyser(); an.fftSize = 1024; src.connect(an);
+    blow = {st, ctx, an, buf:new Float32Array(an.fftSize), t:0, base:0, charge:0, quiet:0};
+    document.querySelectorAll('[data-blow]').forEach(b=>b.setAttribute('aria-pressed','true'));
+    $('partcard').hidden = true; showMeter(P_MIN, '對著麥克風用力吹氣！');
+  }catch(e){ openHelp('麥克風'); }
+}
+function stopBlow(){ if(!blow) return; blow.st.getTracks().forEach(t=>t.stop()); blow.ctx.close(); blow=null;
+  document.querySelectorAll('[data-blow]').forEach(b=>b.setAttribute('aria-pressed','false')); if(!chg) $('meter').hidden=true; }
+function blowTick(dt){
+  const b = blow; b.an.getFloatTimeDomainData(b.buf); let sum=0; for(const v of b.buf) sum+=v*v; const rms = Math.sqrt(sum/b.buf.length);
+  b.t += dt; if(b.t < 0.5){ b.base = Math.max(b.base, rms); return; }       // 先量 0.5 秒環境音
+  if(L.on){ $('meter').hidden = true; b.charge = 0; return; }
+  const th = Math.max(0.045, b.base*2.5);
+  if(rms > th){ b.charge = Math.min(1, b.charge + dt/2.2); b.quiet = 0; }
+  else if(b.charge > 0.03){ b.quiet += dt; }
+  const p = P_MIN + (1-P_MIN)*b.charge;
+  showMeter(p, b.charge>0.03 ? (b.charge>=1 ? '最大推力！' : '繼續吹…停下來就升空') : '對著麥克風用力吹氣！');
+  if(b.charge>=1 || b.quiet>0.35){ b.charge=0; b.quiet=0; startLaunch(p); }
+}
+document.querySelectorAll('[data-blow]').forEach(b=> b.onclick = ()=>{ if(blow) stopBlow(); else startBlow(); });
+
+function showResult(){
+  const a = L.apo; let t;
+  if(a < 100) t = '差一點到太空';
+  else if(a < 250) t = '成功進入太空';
+  else if(a < 380) t = '進入地球軌道';
+  else t = '抵達太空站高度';
+  L.result = {t, a};
+  $('result').innerHTML = `<b>${t}</b>最高 ${a} km${a<100?'（卡門線 100 km 才算太空）':''}`; $('result').hidden = false;
+}
+
+/* 點零件：平常顯示解說；發射途中點推進器／燃料箱可以手動分離 */
+const PART_INFO = {
+  orb: ['軌道載具（太空梭本體）','載太空人和貨物上太空，回程沒有動力，像滑翔機一樣滑回跑道降落。'],
+  et:  ['外部燃料箱','裝液態氫和液態氧給主發動機使用；用完就拋棄，是整組唯一不回收的部分。'],
+  srb: ['固體火箭推進器','起飛時提供大部分推力，約 2 分鐘後分離，掛降落傘落海回收再利用。'],
+  pad: ['發射台（底座）','兩片疊起來加厚，靠插槽把作品立穩；雷切插接要卡得緊才不會歪。'],
+};
+const ray = new THREE.Raycaster();
+function partAt(cx, cy){
+  const r = gl.getBoundingClientRect(); const v = new THREE.Vector2(((cx-r.left)/r.width)*2-1, -((cy-r.top)/r.height)*2+1);
+  ray.setFromCamera(v, camera);
+  const groups = [['orb',G.orb],['et',G.et],['srbL',G.srbL],['srbR',G.srbR],['pad',pad]].filter(x=>x[1] && x[1].visible!==false);
+  let best = null;
+  for(const [k,g] of groups){ const h = ray.intersectObject(g, true).filter(i=>i.object.visible && !(i.object.material && i.object.material.blending===THREE.AdditiveBlending)); if(h.length && (!best || h[0].distance<best.d)) best = {k, d:h[0].distance}; }
+  return best && best.k;
+}
+function showPart(key, extra){ const info = PART_INFO[key.startsWith('srb')?'srb':key]; $('part-t').textContent = info[0] + (extra?'　'+extra:''); $('part-d').textContent = info[1]; $('partcard').hidden = false;
+  clearTimeout(showPart.tm); showPart.tm = setTimeout(()=>{ $('partcard').hidden = true; }, 6000); }
+$('part-x').onclick = ()=>{ $('partcard').hidden = true; };
+function tapAt(cx, cy){
+  const k = partAt(cx, cy); if(!k) return;
+  const adv = kind==='adv' && G.srbFl && G.srbFl.length;
+  if(L.on && adv && L.s>=3.5 && L.s<9.5){
+    if(k.startsWith('srb') && !L.sepS){ sepSRB(); showPart(k,'手動分離！'); return; }
+    if(k==='et' && !L.sepE){ if(!L.sepS){ showPart('srb','要先分離推進器喔'); return; } sepET(); showPart('et','手動分離！'); return; }
+  }
+  if(!L.on) showPart(k);
+}
+launchBtn($('b-launch')); launchBtn($('b-launch4'));
 
 /* 合成：背景（鏡頭畫面或照片，cover 裁切）＋ 3D 畫面 ＋ 倒數字幕 ＋ 浮水印 */
 const comp = document.createElement('canvas'), cg = comp.getContext('2d');
@@ -564,14 +768,24 @@ function composite(maxSide){
   const v4 = $('video4'), b4 = $('bg4');
   if(!v4.hidden) drawCover(g, v4, v4.videoWidth, v4.videoHeight, W, H, v4.classList.contains('mirror'));
   else if(!b4.hidden) drawCover(g, b4, b4.naturalWidth, b4.naturalHeight, W, H, false);
+  const kx = W / $('s3').clientWidth;
+  if(helm.on){ g.save(); g.translate(helm.x*kx, helm.y*kx); g.rotate(helm.rot); g.drawImage(helmImg, -helm.size*kx/2, -helm.size*kx/2, helm.size*kx, helm.size*kx); g.restore(); }
   renderer.render(scene, camera);                                      // 同一個工作內讀取 WebGL 畫面
   g.drawImage(gl, 0, 0, W, H);
   const u = H/720;                                                      // 依畫面高度縮放文字
   if(!$('tele').hidden){
     g.textAlign='center'; g.fillStyle='rgba(12,18,32,.72)';
-    const bw = 260*u, bh = 64*u; g.beginPath(); g.roundRect ? g.roundRect(W/2-bw/2, 14*u, bw, bh, 12*u) : g.rect(W/2-bw/2, 14*u, bw, bh); g.fill();
+    const bw = 260*u, bh = 82*u; g.beginPath(); g.roundRect ? g.roundRect(W/2-bw/2, 14*u, bw, bh, 12*u) : g.rect(W/2-bw/2, 14*u, bw, bh); g.fill();
     g.fillStyle='#EEF2FA'; g.font=`700 ${28*u}px Orbitron, "Share Tech Mono", monospace`; g.fillText($('clock').textContent, W/2, 46*u);
     g.fillStyle='#C9D2E6'; g.font=`500 ${15*u}px "Noto Sans TC", sans-serif`; g.fillText($('ev').textContent, W/2, 68*u);
+    g.fillStyle='#7CF0C8'; g.font=`500 ${14*u}px "Share Tech Mono", monospace`; g.fillText($('alt').textContent, W/2, 86*u);
+  }
+  if(!$('result').hidden && L.result){
+    const t1 = L.result.t, t2 = `最高 ${L.result.a} km`;
+    g.font=`700 ${20*u}px "Noto Sans TC", sans-serif`; const w1 = g.measureText(t1).width; g.font=`500 ${15*u}px "Noto Sans TC", sans-serif`; const w2 = g.measureText(t2).width;
+    const bw = Math.max(w1,w2)+28*u, bh = 62*u; g.fillStyle='rgba(12,18,32,.75)'; g.beginPath(); g.roundRect ? g.roundRect(14*u,14*u,bw,bh,12*u) : g.rect(14*u,14*u,bw,bh); g.fill();
+    g.textAlign='left'; g.fillStyle='#FF8A3D'; g.font=`700 ${20*u}px "Noto Sans TC", sans-serif`; g.fillText(t1, 28*u, 40*u);
+    g.fillStyle='#EEF2FA'; g.font=`500 ${15*u}px "Noto Sans TC", sans-serif`; g.fillText(t2, 28*u, 63*u);
   }
   g.textAlign='right'; g.font=`700 ${15*u}px "Noto Sans TC", sans-serif`;
   g.lineWidth = 4*u; g.strokeStyle='rgba(0,0,0,.45)'; g.fillStyle='rgba(255,255,255,.92)';
@@ -613,18 +827,18 @@ function startRec(){
   rec = {mr, chunks, t0:performance.now(), launched:false, cancel:false};
   mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
   mr.onstop = ()=>{ const r = rec; rec = null; st.getTracks().forEach(t=>t.stop());
-    $('b-rec').setAttribute('aria-pressed','false'); $('rec-t').textContent='錄發射影片'; $('recbadge').hidden=true;
+    $('b-rec').setAttribute('aria-pressed','false'); $('rec-t').textContent='錄發射影片'; $('recbadge').hidden=true; if(photo) $('note4').textContent = helm.on ? '把頭盔拖到臉上，雙指縮放、轉動頭盔；拖曳其他地方移動太空梭。' : NOTE4;
     if(r.cancel || !chunks.length) return;
     const mt = mr.mimeType || type || 'video/webm', ext = mt.includes('mp4') ? 'mp4' : 'webm';
     showShot(new Blob(chunks, {type: mt.split(';')[0]}), `太空梭發射_${stamp()}.${ext}`, true); };
   mr.start(250);
   $('b-rec').setAttribute('aria-pressed','true'); $('rec-t').textContent='停止錄影'; $('recbadge').hidden=false;
-  setTimeout(()=>{ if(rec && !L.on){ $('b-launch').onclick(); } if(rec) rec.launched = true; }, 600);   // 先錄 0.6 秒再發射
+  $('note4').textContent = '錄影中：按住發射鈕蓄力（或吹氣），6 秒內沒發射會自動升空。';
 }
 function stopRec(cancel){ if(!rec) return; rec.cancel = !!cancel; if(rec.mr.state!=='inactive') rec.mr.stop(); }
 $('b-rec').onclick = ()=>{ if(rec) stopRec(false); else startRec(); };
 $('c-et').oninput = $('c-srb').oninput = ()=>{ if(lastScan && kind==='adv') rebuild(); };
-$('b-rescan').onclick = ()=>{ resetLaunch(); go(1); if(!stream && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')) startCamera(); };
+$('b-rescan').onclick = ()=>{ resetLaunch(); stopBlow(); $('result').hidden=true; $('partcard').hidden=true; go(1); if(!stream && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')) startCamera(); };
 
 /* ---------------- 發射動畫（物件池） ---------------- */
 function softTex(){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const gr=g.createRadialGradient(32,32,0,32,32,32);
@@ -643,14 +857,26 @@ const glow = new THREE.PointLight(0xffa860, 0, 700, 1.6); world.add(glow);
 const L = {on:false, s:0, loose:[], sepS:false, sepE:false};
 function resetLaunch(silent){
   const wasLoose = L.loose.length>0;
+  L.loose.forEach(o=>{ world.remove(o.g); clearGroup(o.g); });   // 分離出去的零件清掉，由 rebuild 重建
   L.on=false; L.s=0; L.sepS=false; L.sepE=false; L.loose=[];
   ship.position.set(0,0,0); ship.rotation.set(0,0,0); flames.forEach(f=>f.visible=false); glow.intensity=0;
-  smoke.forEach(q=>{q.alive=false; q.sp.visible=false;}); $('tele').hidden=true; $('b-launch').textContent='發射'; $('b-launch4').textContent='發射';
+  smoke.forEach(q=>{q.alive=false; q.sp.visible=false;}); $('tele').hidden=true; $('b-launch').textContent='按住發射'; $('b-launch4').textContent='按住發射'; $('alt').textContent='';
   if(wasLoose && !silent && lastScan) rebuild();          // 分離出去的零件放回發射台
 }
-$('b-launch').onclick = ()=>{ if(L.on){ resetLaunch(); return; } resetLaunch(); L.on=true; $('tele').hidden=false; $('b-launch').textContent='停止'; $('b-launch4').textContent='停止'; };
 const EVS_S = [[0,'倒數計時'],[1.2,'主發動機點火'],[3,'升空！'],[4.2,'滾轉程序'],[7.2,'飛出大氣層…'],[9.5,'滑翔返航'],[12.6,'安全降落']];
 const EVS_A = [[0,'倒數計時'],[1.2,'主發動機點火'],[3,'推進器點火，升空！'],[4.2,'滾轉程序'],[5.6,'推進器分離'],[7.4,'燃料箱分離'],[8.4,'飛出大氣層…'],[9.5,'太空梭滑翔返航'],[12.6,'安全降落']];
+function sepSRB(){ L.sepS=true;
+  const vy = (36*2.6 + 18*2.6*2.6)*.6*(0.35+0.65*L.p);
+  const side = new THREE.Vector3(1,0,0).applyQuaternion(ship.quaternion);
+  detach(G.srbL, side.clone().multiplyScalar(-90).add(new THREE.Vector3(0,vy,0)), 1.4);
+  detach(G.srbR, side.clone().multiplyScalar(90).add(new THREE.Vector3(0,vy,0)), 1.4);
+  for(const g of [G.srbL,G.srbR]) for(let i=0;i<10;i++){ const p=new THREE.Vector3(); g.getWorldPosition(p); p.y += (Math.random()-.3)*120;
+    puff(p, new THREE.Vector3((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*60), 8, 40, 1.4, .8, .6); }
+}
+function sepET(){ L.sepE=true;
+  const back = new THREE.Vector3(0,0,-1).applyQuaternion(ship.quaternion);
+  detach(G.et, back.multiplyScalar(70).add(new THREE.Vector3(0,(36*4.4+18*4.4*4.4)*.55*(0.35+0.65*L.p),0)), .5);
+}
 function detach(g, vel, spin){ world.attach(g); L.loose.push({g, vel, axis:new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize(), w:spin, t:0}); }
 function launchTick(dt){
   for(const q of smoke){ if(!q.alive) continue; q.age+=dt; if(q.age>=q.life){ q.alive=false; q.sp.visible=false; continue; }
@@ -662,28 +888,19 @@ function launchTick(dt){
   const s = (L.s += dt), adv = kind==='adv' && G.srbFl && G.srbFl.length;
   let ev=''; for(const e of (adv?EVS_A:EVS_S)) if(s>=e[0]) ev=e[1]; $('ev').textContent = ev;
   $('clock').textContent = s<3 ? `T−${Math.ceil(3-s)}` : `T+${Math.floor(s-3)}`;
+  $('alt').textContent = s<3 ? `目標 ${L.apo} km` : s<9.5 ? `高度 ${Math.round(L.apo*Math.min(1, Math.pow((s-3)/6.5, 1.6)))} km` : `最高 ${L.apo} km`;
   const thrust = s>=1.2 && s<9.5, srbOn = adv && s>=3 && !L.sepS;
   flames.forEach((f,i)=>{ f.visible = thrust && s>=1.2+i*.12; if(f.visible){ const fl=1+(Math.random()-.5)*.25, lv=Math.min(1,(s-1.2)/.6); f.scale.set(1,lv*fl,1); } });
   if(adv) G.srbFl.forEach(f=>{ f.visible = srbOn; if(srbOn) f.scale.set(1, Math.min(1,(s-3)/.3)*(1+(Math.random()-.5)*.25), 1); });
   glow.intensity = thrust ? (srbOn?2.4:1.2)*(0.85+Math.random()*.3)*(s<6?1:Math.max(0,1-(s-6)/2)) : 0;
   glow.position.set(ship.position.x, ship.position.y-10, 20);
-  if(s>=3 && s<9.5){ const t=s-3; ship.position.y = 18*t*t + 6*t*t*t; ship.rotation.y = Math.min(Math.PI*2, t*1.4); ship.rotation.z = -Math.min(.35, Math.max(0,(t-1.2)*.12)); }
+  if(s>=3 && s<9.5){ const t=s-3; ship.position.y = (18*t*t + 6*t*t*t)*(0.35+0.65*L.p); ship.rotation.y = Math.min(Math.PI*2, t*1.4); ship.rotation.z = -Math.min(.35, Math.max(0,(t-1.2)*.12)); }
   // 分離
-  if(adv && !L.sepS && s>=5.6){ L.sepS=true;
-    const vy = (36*2.6 + 18*2.6*2.6)*.6;
-    const side = new THREE.Vector3(1,0,0).applyQuaternion(ship.quaternion);
-    detach(G.srbL, side.clone().multiplyScalar(-90).add(new THREE.Vector3(0,vy,0)), 1.4);
-    detach(G.srbR, side.clone().multiplyScalar(90).add(new THREE.Vector3(0,vy,0)), 1.4);
-    for(const g of [G.srbL,G.srbR]) for(let i=0;i<10;i++){ const p=new THREE.Vector3(); g.getWorldPosition(p); p.y += (Math.random()-.3)*120;
-      puff(p, new THREE.Vector3((Math.random()-.5)*60,(Math.random()-.5)*40,(Math.random()-.5)*60), 8, 40, 1.4, .8, .6); }
-  }
-  if(adv && !L.sepE && s>=7.4){ L.sepE=true;
-    const back = new THREE.Vector3(0,0,-1).applyQuaternion(ship.quaternion);
-    detach(G.et, back.multiplyScalar(70).add(new THREE.Vector3(0,(36*4.4+18*4.4*4.4)*.55,0)), .5);
-  }
+  if(adv && !L.sepS && s>=5.6) sepSRB();
+  if(adv && !L.sepE && s>=7.4) sepET();
   if(s>=9.5){ const t = Math.min(1,(s-9.5)/3.5), e = 1-Math.pow(1-t,3);
     ship.position.y = 900*(1-e); ship.rotation.y = 0; ship.rotation.z = -.35*(1-e); ship.position.x = 140*(1-e);
-    if(t>=1) resetLaunch(); }
+    if(t>=1){ showResult(); resetLaunch(); } }
   if(thrust && s<6.5 && Math.random()<dt*(srbOn?60:40)){ const a=Math.random()*6.283, sp=(srbOn?130:90)+Math.random()*130;
     puff(new THREE.Vector3(Math.cos(a)*10, 2, 20+Math.sin(a)*8), new THREE.Vector3(Math.cos(a)*sp, 10+Math.random()*25, Math.sin(a)*sp*.6), srbOn?20:14, (srbOn?110:80)+Math.random()*30, 3.2, .8, s<3?.4:.15); }
   if(thrust && s>=3 && Math.random()<dt*(srbOn?40:28)){ const p = new THREE.Vector3(ship.position.x+(Math.random()-.5)*(srbOn?60:8), ship.position.y-40-Math.random()*30, 20);
@@ -696,6 +913,7 @@ function loop(){
   requestAnimationFrame(loop);
   let dt = clock.getDelta(); if(dt>.1) dt=.1;
   if(step!==3) return;
+  chargeTick(dt);
   launchTick(dt);
   // 一般模式鏡頭跟著往上看；合照模式背景不動，太空梭飛出畫面再滑翔回來
   const target = new THREE.Vector3(0, (L.on && !photo) ? Math.min(ship.position.y*.88, 1800)+95 : 95, T);
@@ -705,7 +923,9 @@ function loop(){
   if(photo){ const w=$('s3').clientWidth, h=$('s3').clientHeight; if(w&&h) camera.setViewOffset(w, h, -pan.x, -pan.y, w, h); }
   if(rec){ composite(1280);
     const s = (performance.now()-rec.t0)/1000; $('recbadge').textContent = `● REC ${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
-    if((rec.launched && !L.on) || s>25) stopRec(false); }
+    if(L.on) rec.launched = true;
+    else if(!rec.launched && s>6 && !chg && !(blow && blow.charge>0.03)) startLaunch(0.75);   // 6 秒內沒發射就自動發射
+    if((rec.launched && !L.on) || s>30) stopRec(false); }
   else renderer.render(scene, camera);
 }
 loop();

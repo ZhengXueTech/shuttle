@@ -1064,7 +1064,7 @@ function launchUpdate(dt){
    下載密碼：檔案以 AES-GCM 加密存放（PBKDF2-SHA256 由密碼產生金鑰），
    輸入正確密碼後在瀏覽器內解密下載；伺服器上沒有未加密的雷切檔。
    ===================================================================== */
-const LOCK = {"salt": "rgPye1+FXQw7QN763Qf5qQ==", "iter": 250000, "check": "q7u842lNKHwSfoKR6/4+1lcHD2FyOyEBLBUB1VeSLpGEwkt2"};
+const LOCK = {"salt": "qolTmGKaNipxTLNDea4IjA==", "iter": 250000, "check": "nInzwrulujvQ9CRmQgfe7T84sFcJyG9M0xRtar/JKpptQMwZ"};
 let dlKey = null;
 const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function deriveKey(pw){
@@ -1171,7 +1171,7 @@ document.addEventListener('click', async e=>{
 });
 
 /* AR 入口 QR（依目前網址自動產生） */
-(function(){ try{ const url = new URL('ar.html', location.href).href; const q = qrcode(0,'M'); q.addData(url); q.make();
+(function(){ try{ const url = new URL('ar.html?openExternalBrowser=1', location.href).href; const q = qrcode(0,'M'); q.addData(url); q.make();
   document.getElementById('ar-qr').innerHTML = q.createSvgTag({cellSize:4, margin:1, scalable:true}); }catch(e){ document.getElementById('ar-qr').textContent='QR 無法產生'; } })();
 
 const startVer = ['advanced','student'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'simple';
