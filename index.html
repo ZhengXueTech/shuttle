@@ -1064,7 +1064,7 @@ function launchUpdate(dt){
    下載密碼：檔案以 AES-GCM 加密存放（PBKDF2-SHA256 由密碼產生金鑰），
    輸入正確密碼後在瀏覽器內解密下載；伺服器上沒有未加密的雷切檔。
    ===================================================================== */
-const LOCK = {"salt": "xiZoCYJIKgKcf7x6f2r53g==", "iter": 250000, "check": "7B24DlfNXCSsnQMwI1Z7PR6b1knZenn7elykG0fmtR/O3C19"};
+const LOCK = {"salt": "rgPye1+FXQw7QN763Qf5qQ==", "iter": 250000, "check": "q7u842lNKHwSfoKR6/4+1lcHD2FyOyEBLBUB1VeSLpGEwkt2"};
 let dlKey = null;
 const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function deriveKey(pw){

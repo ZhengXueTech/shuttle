@@ -90,6 +90,22 @@ button,label.btn{font:inherit;color:inherit}
 }
 @media (max-height:520px){ .top{padding-top:4px;padding-bottom:4px} .brand small{display:none} .tipbar{padding-top:4px} .bar{padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))} .shutter{width:52px;height:52px} }
 @media (prefers-reduced-motion:reduce){.shutter:active{transform:none}}
+/* 合照模式 */
+#video4,#bg4{object-fit:cover}
+#video4.mirror{transform:scaleX(-1)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;vertical-align:middle;margin:0 6px 4px 0}
+.seg button,.seg label{border:0;background:transparent;border-radius:999px;padding:4px 11px;cursor:pointer;font-size:13px;white-space:nowrap;color:var(--ink)}
+.seg [aria-pressed="true"]{background:#fff;color:#0B1020;font-weight:700}
+.btn.rec[aria-pressed="true"]{background:#E5484D;border-color:#E5484D;color:#fff;font-weight:700}
+.btn.rec .dot{width:10px;height:10px;border-radius:50%;background:#E5484D;display:inline-block}
+.btn.rec[aria-pressed="true"] .dot{background:#fff}
+.recbadge{position:absolute;right:12px;top:12px;background:#E5484D;color:#fff;border-radius:999px;padding:3px 10px;font-family:var(--f-mono);font-size:13px;z-index:4;pointer-events:none}
+.shot{position:absolute;inset:0;z-index:20;background:rgba(5,8,15,.94);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  padding:16px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+.shot img,.shot video{max-width:100%;max-height:calc(100% - 120px);border-radius:10px;border:1px solid var(--line);background:#000}
+.shot p{margin:0;color:var(--muted);font-size:13px;text-align:center}
+.shot .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+@media (max-width:600px){ #note4{display:block} .seg{margin-right:0} }
 </style>
 </head>
 <body>
@@ -127,15 +143,18 @@ button,label.btn{font:inherit;color:inherit}
   <!-- 步驟 3：AR -->
   <section class="stage" id="s3" aria-label="AR 發射" hidden>
     <img id="bgimg" alt="">
-    <video id="video3" playsinline muted autoplay hidden></video>
+    <video id="video4" playsinline muted autoplay hidden></video>
+    <img id="bg4" alt="" hidden>
     <canvas id="gl"></canvas>
     <div class="tele" id="tele" hidden><div class="clock" id="clock">T−10</div><div class="ev" id="ev"></div></div>
+    <div class="recbadge" id="recbadge" hidden>● REC 0:00</div>
   </section>
 
   <div class="tipbar">
     <p class="tip" id="tip1">從<b>有雕刻的正面</b>拍你的太空梭，讓它對齊綠色框線，再按快門。</p>
     <p class="tip" id="tip2" hidden>拖曳四個<b>綠點</b>到機頭、左右翼尖、機尾中央，框線貼合後按「完成」。</p>
     <p class="tip" id="tip3" hidden><span id="note3t">拖曳旋轉、雙指縮放。機身顏色 <span class="swatch" id="sw"></span> 取自你的彩繪</span><span class="advc" id="advc" hidden><label for="c-et">燃料箱</label><input type="color" id="c-et"><label for="c-srb">推進器</label><input type="color" id="c-srb"></span></p>
+    <p class="tip" id="tip4" hidden><span class="seg" role="group" aria-label="合照背景"><button type="button" data-bg="front" aria-pressed="true">自拍鏡頭</button><button type="button" data-bg="rear" aria-pressed="false">後鏡頭</button><label for="file4" data-bg="album" aria-pressed="false">相簿照片</label></span><input class="sr" id="file4" type="file" accept="image/*"><span id="note4">拖曳移動太空梭，雙指縮放、轉動</span></p>
   </div>
   <div class="bar" id="bar1">
     <label class="btn" for="file">上傳照片</label>
@@ -149,8 +168,20 @@ button,label.btn{font:inherit;color:inherit}
   </div>
   <div class="bar" id="bar3" hidden>
     <button class="btn" id="b-rescan">重新掃描</button>
-    <button class="btn" id="b-cam">相機背景</button>
+    <button class="btn" id="b-photo">與作品合照</button>
     <button class="btn go" id="b-launch">發射</button>
+  </div>
+  <div class="bar" id="bar4" hidden>
+    <button class="btn" id="b-back4">返回</button>
+    <button class="btn rec" id="b-rec" aria-pressed="false"><span class="dot"></span><span id="rec-t">錄發射影片</span></button>
+    <button class="shutter" id="shoot4" aria-label="拍合照"></button>
+    <button class="btn go" id="b-launch4">發射</button>
+  </div>
+  <div class="shot" id="shot" hidden role="dialog" aria-label="合照預覽">
+    <img id="shot-img" alt="合照預覽" hidden>
+    <video id="shot-vid" controls playsinline loop hidden></video>
+    <p id="shot-note">手機上也可以長按圖片直接存到相簿。</p>
+    <div class="row"><button class="btn" id="shot-close">再拍一張</button><button class="btn go" id="shot-save">儲存／分享</button></div>
   </div>
 </div>
 
@@ -451,34 +482,149 @@ function buildModel(faceCanvas, body, k, et, srb){
     G.srbFl = [];
   }
   $('advc').hidden = k!=='adv';
-  view.r = k==='adv' ? 560 : 430;
+  view.r = (k==='adv' ? 560 : 430) * (photo ? 1.6 : 1);
 }
 /* 互動：拖曳旋轉、雙指縮放 */
 const view = {yaw:-0.35, pitch:0.18, r:430};
-(function(){ const s3 = $('s3'), pts = new Map(); let pinch = 0;
+const pan = {x:0, y:0};                                     // 合照模式：太空梭在畫面上的位移（CSS px）
+(function(){ const s3 = $('s3'), pts = new Map(); let pinch = 0, twist = null;
   s3.addEventListener('pointerdown', e=>{ s3.setPointerCapture(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]); });
   s3.addEventListener('pointermove', e=>{ if(!pts.has(e.pointerId)) return; const [px,py]=pts.get(e.pointerId); pts.set(e.pointerId,[e.clientX,e.clientY]);
-    if(pts.size===1){ view.yaw -= (e.clientX-px)*.008; view.pitch = Math.max(-.2, Math.min(1.2, view.pitch + (e.clientY-py)*.006)); }
-    else if(pts.size===2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]); if(pinch) view.r = Math.max(180, Math.min(1400, view.r*pinch/d)); pinch=d; } });
-  const end = e=>{ pts.delete(e.pointerId); if(pts.size<2) pinch=0; };
+    if(pts.size===1){
+      if(photo){ pan.x += e.clientX-px; pan.y += e.clientY-py; }
+      else { view.yaw -= (e.clientX-px)*.008; view.pitch = Math.max(-.2, Math.min(1.2, view.pitch + (e.clientY-py)*.006)); } }
+    else if(pts.size===2){ const [a,b]=[...pts.values()]; const d=Math.hypot(a[0]-b[0],a[1]-b[1]), ang=Math.atan2(b[1]-a[1],b[0]-a[0]);
+      if(pinch) view.r = Math.max(180, Math.min(2400, view.r*pinch/d)); pinch=d;
+      if(photo && twist!==null){ let da=ang-twist; if(da>Math.PI) da-=2*Math.PI; if(da<-Math.PI) da+=2*Math.PI; view.yaw -= da; } twist=ang; } });
+  const end = e=>{ pts.delete(e.pointerId); if(pts.size<2){ pinch=0; twist=null; } };
   s3.addEventListener('pointerup', end); s3.addEventListener('pointercancel', end);
-  s3.addEventListener('wheel', e=>{ e.preventDefault(); view.r = Math.max(180, Math.min(1400, view.r*(1+Math.sign(e.deltaY)*.08))); }, {passive:false});
+  s3.addEventListener('wheel', e=>{ e.preventDefault(); view.r = Math.max(180, Math.min(2400, view.r*(1+Math.sign(e.deltaY)*.08))); }, {passive:false});
 })();
 function resize3(){ const s=$('s3'), w=s.clientWidth, h=s.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
 addEventListener('resize', ()=>{ resize3(); if(step===2 && handles) redrawAlign(); });
 
-/* 相機背景（AR 合成） */
-let camBg = false;
-$('b-cam').onclick = async ()=>{
-  const v3 = $('video3');
-  if(camBg){ camBg=false; v3.hidden=true; $('bgimg').hidden=false; $('b-cam').textContent='相機背景'; return; }
+/* ---------------- 合照模式：自拍／後鏡頭／相簿照片當背景，太空梭在畫面裡飛 ---------------- */
+let photo = false, bgMode = 'front', stream4 = null, saved3 = null;
+const NOTE4 = '拖曳移動太空梭，雙指縮放、轉動';
+function stopStream(s){ if(s) s.getTracks().forEach(t=>t.stop()); }
+function markBg(m){ document.querySelectorAll('#tip4 [data-bg]').forEach(b=>b.setAttribute('aria-pressed', b.dataset.bg===m)); }
+async function setBg(m){
+  const v4 = $('video4'), b4 = $('bg4');
+  if(m==='album'){ stopStream(stream4); stream4=null; v4.hidden=true; b4.hidden=false; $('bgimg').hidden=true; bgMode='album'; markBg('album'); return; }
+  stopStream(stream4); stream4 = null;
+  if(stream){ stopStream(stream); stream = null; }          // 部分手機不能同時開兩顆鏡頭
   try{
-    if(!stream) stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
-    v3.srcObject = stream; await v3.play(); v3.hidden=false; v3.style.objectFit='cover'; $('bgimg').hidden=true; camBg=true; $('b-cam').textContent='照片背景';
-  }catch(e){ $('note3t').textContent='這台裝置不能開相機，先用照片當背景。'; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw 0;
+    stream4 = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal: m==='front'?'user':'environment'}, width:{ideal:1920}, height:{ideal:1080}}, audio:false});
+    v4.srcObject = stream4; await v4.play();
+    v4.classList.toggle('mirror', m==='front'); v4.hidden=false; b4.hidden=true; $('bgimg').hidden=true;
+    bgMode = m; markBg(m); $('note4').textContent = NOTE4;
+  }catch(e){
+    $('note4').textContent = '這台裝置不能開相機，可以改按「相簿照片」選一張自己的照片。';
+    v4.hidden = true; if(b4.getAttribute('src')){ b4.hidden=false; bgMode='album'; markBg('album'); } else { $('bgimg').hidden=false; }
+  }
+}
+document.querySelectorAll('#tip4 button[data-bg]').forEach(b=> b.onclick = ()=>setBg(b.dataset.bg));
+$('file4').onchange = e=>{ const f=e.target.files[0]; if(!f) return; const b4=$('bg4');
+  if(b4.dataset.url) URL.revokeObjectURL(b4.dataset.url); b4.dataset.url = URL.createObjectURL(f);
+  b4.onload = ()=>setBg('album'); b4.src = b4.dataset.url; e.target.value=''; };
+function setPhoto(on){
+  photo = on;
+  $('bar3').hidden = on; $('tip3').hidden = on; $('bar4').hidden = !on; $('tip4').hidden = !on;
+  shadowFloor.visible = !on;
+  if(on){
+    saved3 = {...view};
+    const w = $('s3').clientWidth, h = $('s3').clientHeight;
+    view.yaw = -0.5; view.pitch = 0.1; view.r *= 1.6;                 // 縮小一點、放在畫面右下，左邊留給作者
+    pan.x = w>h ? w*0.24 : w*0.18; pan.y = h*0.12;
+    setBg(bgMode==='album' && $('bg4').getAttribute('src') ? 'album' : 'front');
+  } else {
+    if(rec) stopRec(true);
+    stopStream(stream4); stream4 = null; $('video4').hidden=true; $('bg4').hidden=true; $('bgimg').hidden=false;
+    if(saved3) Object.assign(view, saved3); pan.x = pan.y = 0; camera.clearViewOffset();
+  }
+}
+$('b-photo').onclick = ()=>{ resetLaunch(); setPhoto(true); };
+$('b-back4').onclick = ()=>{ resetLaunch(); setPhoto(false); };
+$('b-launch4').onclick = ()=> $('b-launch').onclick();
+
+/* 合成：背景（鏡頭畫面或照片，cover 裁切）＋ 3D 畫面 ＋ 倒數字幕 ＋ 浮水印 */
+const comp = document.createElement('canvas'), cg = comp.getContext('2d');
+function drawCover(g, src, sw, sh, W, H, mirror){
+  if(!sw || !sh) return;
+  const s = Math.max(W/sw, H/sh), dw = sw*s, dh = sh*s;
+  g.save(); if(mirror){ g.translate(W,0); g.scale(-1,1); }
+  g.drawImage(src, (W-dw)/2, (H-dh)/2, dw, dh); g.restore();
+}
+function composite(maxSide){
+  const W0 = gl.width, H0 = gl.height, k = Math.min(1, (maxSide||9999)/Math.max(W0,H0));
+  const W = Math.round(W0*k/2)*2, H = Math.round(H0*k/2)*2;           // 錄影編碼要偶數尺寸
+  if(comp.width!==W || comp.height!==H){ comp.width=W; comp.height=H; }
+  const g = cg; g.fillStyle='#000'; g.fillRect(0,0,W,H);
+  const v4 = $('video4'), b4 = $('bg4');
+  if(!v4.hidden) drawCover(g, v4, v4.videoWidth, v4.videoHeight, W, H, v4.classList.contains('mirror'));
+  else if(!b4.hidden) drawCover(g, b4, b4.naturalWidth, b4.naturalHeight, W, H, false);
+  renderer.render(scene, camera);                                      // 同一個工作內讀取 WebGL 畫面
+  g.drawImage(gl, 0, 0, W, H);
+  const u = H/720;                                                      // 依畫面高度縮放文字
+  if(!$('tele').hidden){
+    g.textAlign='center'; g.fillStyle='rgba(12,18,32,.72)';
+    const bw = 260*u, bh = 64*u; g.beginPath(); g.roundRect ? g.roundRect(W/2-bw/2, 14*u, bw, bh, 12*u) : g.rect(W/2-bw/2, 14*u, bw, bh); g.fill();
+    g.fillStyle='#EEF2FA'; g.font=`700 ${28*u}px Orbitron, "Share Tech Mono", monospace`; g.fillText($('clock').textContent, W/2, 46*u);
+    g.fillStyle='#C9D2E6'; g.font=`500 ${15*u}px "Noto Sans TC", sans-serif`; g.fillText($('ev').textContent, W/2, 68*u);
+  }
+  g.textAlign='right'; g.font=`700 ${15*u}px "Noto Sans TC", sans-serif`;
+  g.lineWidth = 4*u; g.strokeStyle='rgba(0,0,0,.45)'; g.fillStyle='rgba(255,255,255,.92)';
+  const wm = '學思創客 XUESI MAKER · 我的太空梭'; g.strokeText(wm, W-16*u, H-16*u); g.fillText(wm, W-16*u, H-16*u);
+  return comp;
+}
+const stamp = ()=>{ const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+let shotBlob = null, shotName = '', shotUrl = '';
+function showShot(blob, name, isVideo){
+  if(shotUrl) URL.revokeObjectURL(shotUrl);
+  shotBlob = blob; shotName = name; shotUrl = URL.createObjectURL(blob);
+  $('shot-img').hidden = isVideo; $('shot-vid').hidden = !isVideo;
+  if(isVideo){ $('shot-vid').src = shotUrl; $('shot-vid').play().catch(()=>{}); $('shot-note').textContent='影片會存成 '+name.split('.').pop().toUpperCase()+' 檔，可以直接分享到家長群組。'; }
+  else { $('shot-img').src = shotUrl; $('shot-vid').removeAttribute('src'); $('shot-note').textContent='手機上也可以長按圖片直接存到相簿。'; }
+  $('shot').hidden = false; $('shot-save').focus();
+}
+$('shoot4').onclick = ()=>{ composite().toBlob(b=>{ if(b) showShot(b, `太空梭合照_${stamp()}.jpg`, false); }, 'image/jpeg', .92); };
+$('shot-close').onclick = ()=>{ $('shot').hidden = true; $('shot-vid').pause(); };
+$('shot-save').onclick = async ()=>{
+  if(!shotBlob) return;
+  const file = new File([shotBlob], shotName, {type: shotBlob.type});
+  try{ if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file], title:'我的太空梭'}); return; } }catch(e){ if(e && e.name==='AbortError') return; }
+  const a = document.createElement('a'); a.href = shotUrl; a.download = shotName; document.body.appendChild(a); a.click(); a.remove();
 };
+
+/* 錄影：按下就自動發射，降落後自動停止（最長 25 秒） */
+let rec = null;
+function recType(){
+  if(!window.MediaRecorder) return null;
+  for(const t of ['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']) if(MediaRecorder.isTypeSupported(t)) return t;
+  return '';
+}
+function startRec(){
+  const type = recType();
+  if(type===null || !comp.captureStream){ $('note4').textContent='這個瀏覽器不支援錄影，可以改用拍照，或用手機內建的螢幕錄影。'; return; }
+  composite(1280);
+  const st = comp.captureStream(30), chunks = [];
+  let mr; try{ mr = new MediaRecorder(st, type ? {mimeType:type, videoBitsPerSecond:6e6} : {videoBitsPerSecond:6e6}); }catch(e){ $('note4').textContent='錄影無法啟動，可以改用拍照。'; return; }
+  rec = {mr, chunks, t0:performance.now(), launched:false, cancel:false};
+  mr.ondataavailable = e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+  mr.onstop = ()=>{ const r = rec; rec = null; st.getTracks().forEach(t=>t.stop());
+    $('b-rec').setAttribute('aria-pressed','false'); $('rec-t').textContent='錄發射影片'; $('recbadge').hidden=true;
+    if(r.cancel || !chunks.length) return;
+    const mt = mr.mimeType || type || 'video/webm', ext = mt.includes('mp4') ? 'mp4' : 'webm';
+    showShot(new Blob(chunks, {type: mt.split(';')[0]}), `太空梭發射_${stamp()}.${ext}`, true); };
+  mr.start(250);
+  $('b-rec').setAttribute('aria-pressed','true'); $('rec-t').textContent='停止錄影'; $('recbadge').hidden=false;
+  setTimeout(()=>{ if(rec && !L.on){ $('b-launch').onclick(); } if(rec) rec.launched = true; }, 600);   // 先錄 0.6 秒再發射
+}
+function stopRec(cancel){ if(!rec) return; rec.cancel = !!cancel; if(rec.mr.state!=='inactive') rec.mr.stop(); }
+$('b-rec').onclick = ()=>{ if(rec) stopRec(false); else startRec(); };
 $('c-et').oninput = $('c-srb').oninput = ()=>{ if(lastScan && kind==='adv') rebuild(); };
-$('b-rescan').onclick = ()=>{ resetLaunch(); go(1); };
+$('b-rescan').onclick = ()=>{ resetLaunch(); go(1); if(!stream && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')) startCamera(); };
 
 /* ---------------- 發射動畫（物件池） ---------------- */
 function softTex(){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d'); const gr=g.createRadialGradient(32,32,0,32,32,32);
@@ -499,10 +645,10 @@ function resetLaunch(silent){
   const wasLoose = L.loose.length>0;
   L.on=false; L.s=0; L.sepS=false; L.sepE=false; L.loose=[];
   ship.position.set(0,0,0); ship.rotation.set(0,0,0); flames.forEach(f=>f.visible=false); glow.intensity=0;
-  smoke.forEach(q=>{q.alive=false; q.sp.visible=false;}); $('tele').hidden=true; $('b-launch').textContent='發射';
+  smoke.forEach(q=>{q.alive=false; q.sp.visible=false;}); $('tele').hidden=true; $('b-launch').textContent='發射'; $('b-launch4').textContent='發射';
   if(wasLoose && !silent && lastScan) rebuild();          // 分離出去的零件放回發射台
 }
-$('b-launch').onclick = ()=>{ if(L.on){ resetLaunch(); return; } resetLaunch(); L.on=true; $('tele').hidden=false; $('b-launch').textContent='停止'; };
+$('b-launch').onclick = ()=>{ if(L.on){ resetLaunch(); return; } resetLaunch(); L.on=true; $('tele').hidden=false; $('b-launch').textContent='停止'; $('b-launch4').textContent='停止'; };
 const EVS_S = [[0,'倒數計時'],[1.2,'主發動機點火'],[3,'升空！'],[4.2,'滾轉程序'],[7.2,'飛出大氣層…'],[9.5,'滑翔返航'],[12.6,'安全降落']];
 const EVS_A = [[0,'倒數計時'],[1.2,'主發動機點火'],[3,'推進器點火，升空！'],[4.2,'滾轉程序'],[5.6,'推進器分離'],[7.4,'燃料箱分離'],[8.4,'飛出大氣層…'],[9.5,'太空梭滑翔返航'],[12.6,'安全降落']];
 function detach(g, vel, spin){ world.attach(g); L.loose.push({g, vel, axis:new THREE.Vector3(Math.random()-.5,Math.random()-.5,Math.random()-.5).normalize(), w:spin, t:0}); }
@@ -551,11 +697,16 @@ function loop(){
   let dt = clock.getDelta(); if(dt>.1) dt=.1;
   if(step!==3) return;
   launchTick(dt);
-  const target = new THREE.Vector3(0, L.on ? Math.min(ship.position.y*.88, 1800)+95 : 95, T);   // 鏡頭跟著往上看
+  // 一般模式鏡頭跟著往上看；合照模式背景不動，太空梭飛出畫面再滑翔回來
+  const target = new THREE.Vector3(0, (L.on && !photo) ? Math.min(ship.position.y*.88, 1800)+95 : 95, T);
   const cp = Math.cos(view.pitch);
   camera.position.set(target.x + view.r*Math.sin(view.yaw)*cp, target.y + view.r*Math.sin(view.pitch), target.z + view.r*Math.cos(view.yaw)*cp);
   camera.lookAt(target);
-  renderer.render(scene, camera);
+  if(photo){ const w=$('s3').clientWidth, h=$('s3').clientHeight; if(w&&h) camera.setViewOffset(w, h, -pan.x, -pan.y, w, h); }
+  if(rec){ composite(1280);
+    const s = (performance.now()-rec.t0)/1000; $('recbadge').textContent = `● REC ${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`;
+    if((rec.launched && !L.on) || s>25) stopRec(false); }
+  else renderer.render(scene, camera);
 }
 loop();
 go(1);
