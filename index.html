@@ -130,6 +130,9 @@ section.block>.lede{margin:-6px 0 0;color:var(--muted);max-width:68ch}
 .arbox{display:grid;grid-template-columns:auto minmax(0,1fr);gap:18px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
 .arbox .qr{background:#fff;border-radius:10px;padding:8px;width:176px;height:176px;display:flex;align-items:center;justify-content:center}
 .arbox .qr svg{width:100%;height:auto;display:block}
+.qrcol{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.qrbrand{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted, #667)}
+.qrbrand select{font:inherit;padding:4px 8px;border-radius:8px}
 .arbox ol{margin:8px 0 10px;padding-left:1.2em;display:flex;flex-direction:column;gap:2px;font-size:14px}
 .arbox .row{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 .arbox .note{margin:0}
@@ -254,7 +257,12 @@ footer.site a{color:inherit}
   <section class="block" id="ar" aria-labelledby="ar-h">
     <h2 id="ar-h">AR 掃描：讓你彩繪的太空梭發射</h2>
     <div class="arbox">
-      <div class="qr" id="ar-qr" aria-label="AR 頁面的 QR code"></div>
+      <div class="qrcol">
+        <div class="qr" id="ar-qr" aria-label="AR 頁面的 QR code"></div>
+        <label class="qrbrand">QR 浮水印版本
+          <select id="qr-brand"><option value="xuesi">學思創客</option><option value="zz">中正創客（學校擺攤）</option><option value="zzm">中正MAKER</option></select>
+        </label>
+      </div>
       <div class="ar-text">
         <p class="lede">用平板或手機掃 QR，打開相機對準自己彩繪的太空梭（有雕刻的正面）拍一張。網頁會把你的配色貼到 3D 模型上，再讓它在畫面裡點火升空。</p>
         <ol>
@@ -1064,7 +1072,7 @@ function launchUpdate(dt){
    下載密碼：檔案以 AES-GCM 加密存放（PBKDF2-SHA256 由密碼產生金鑰），
    輸入正確密碼後在瀏覽器內解密下載；伺服器上沒有未加密的雷切檔。
    ===================================================================== */
-const LOCK = {"salt": "8IckFMuV0DaIltll9iW6yA==", "iter": 250000, "check": "nOvCM4nnqLX6tr/oxVzRXxmhvx0xePGfqZdYtzpYAyqR8imJ"};
+const LOCK = {"salt": "GPp5FxXG6u0GK+X7wkliZw==", "iter": 250000, "check": "wakx66LBfxhKk1lH+WST+Bgp/r+Vah/dDNm+tB1YIbqzkD5Q"};
 let dlKey = null;
 const b64 = s => Uint8Array.from(atob(s), c=>c.charCodeAt(0));
 async function deriveKey(pw){
@@ -1171,8 +1179,14 @@ document.addEventListener('click', async e=>{
 });
 
 /* AR 入口 QR（依目前網址自動產生） */
-(function(){ try{ const url = new URL('ar.html?openExternalBrowser=1', location.href).href; const q = qrcode(0,'M'); q.addData(url); q.make();
-  document.getElementById('ar-qr').innerHTML = q.createSvgTag({cellSize:4, margin:1, scalable:true}); }catch(e){ document.getElementById('ar-qr').textContent='QR 無法產生'; } })();
+(function(){
+  const sel = document.getElementById('qr-brand'), box = document.getElementById('ar-qr'), open = document.querySelector('a[href^="ar.html"]');
+  function draw(){ try{
+      const u = new URL('ar.html', location.href); u.searchParams.set('openExternalBrowser','1'); if(sel.value!=='xuesi') u.searchParams.set('brand', sel.value);
+      const q = qrcode(0,'M'); q.addData(u.href); q.make(); box.innerHTML = q.createSvgTag({cellSize:4, margin:1, scalable:true});
+      if(open) open.href = 'ar.html' + (sel.value!=='xuesi' ? '?brand='+sel.value : '');
+    }catch(e){ box.textContent='QR 無法產生'; } }
+  sel.onchange = draw; draw(); })();
 
 const startVer = ['advanced','student'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'simple';
 setVersion(startVer, true);
